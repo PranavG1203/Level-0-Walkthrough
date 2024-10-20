@@ -1,21 +1,30 @@
-name: Check Commits
-
-on: [push]
-
+name: Autograding Tests
+'on':
+- push
+- repository_dispatch
+permissions:
+  checks: write
+  actions: read
+  contents: read
 jobs:
-  check_commits:
+  run-autograding-tests:
     runs-on: ubuntu-latest
+    if: github.actor != 'github-classroom[bot]'
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-        with:
-          fetch-depth: 0  
-
-      - name: Commits
-        run: |
-          commit_count=$(git rev-list --count HEAD)
-          if [ "$commit_count" -gt 1 ]; then
-              echo "Pass!"
-          else
-              echo "Fail!"
-              exit 1
+    - name: Checkout code
+      uses: actions/checkout@v4
+    - name: Flag Check
+      id: flag-check
+      uses: classroom-resources/autograding-command-grader@v1
+      with:
+        test-name: Flag Check
+        setup-command: ''
+        command: "bash script.sh"
+        timeout: 10
+        max-score: 10
+    - name: Autograding Reporter
+      uses: classroom-resources/autograding-grading-reporter@v1
+      env:
+        FLAG-CHECK_RESULTS: "${{steps.flag-check.outputs.result}}"
+      with:
+        runners: flag-check
